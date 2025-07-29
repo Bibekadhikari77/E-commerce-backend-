@@ -3,7 +3,7 @@ const User = require('../models/User');
 const Productmodel = require('../models/Product');
 
 const addToCart = asyncHandler(async (req, res) => {
-  const user = await User.findOne({ email: req.user.email });
+  const user = await User.findOne({ email: req.user.email }).populate('cart');
 
     const Product = await Productmodel.findById(req.params.id);
 

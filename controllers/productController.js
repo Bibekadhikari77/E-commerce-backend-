@@ -1,61 +1,65 @@
 const Product = require('../models/Product');
 const asyncHandler = require('../middleware/asyncHandler');
 const multer = require('../middleware/multer');
-const User = require('../models/User');
 
+// Get all products
 const getAllProducts = asyncHandler(async (req, res) => {
   const products = await Product.find();
-  const user = await User.findOne({ email: req.user.email }).populate('cart');
-  res.json({products,user});
+  res.json({ products });
 });
 
-
+// Get product by ID
 const getProductById = asyncHandler(async (req, res) => {
   const product = await Product.findById(req.params.id);
+  if (!product) {
+    return res.status(404).json({ message: "Product not found" });
+  }
   res.json(product);
 });
 
-
+// Create product
 const createProduct = asyncHandler(async (req, res) => {
-  const { name, description, price, category, stock } = req.body;
+  const { name, price, description, discount, category } = req.body;
 
-  if (!name || !description || !price || !category || !stock) {
-    return res.status(400).json({ message: "All fields are required" });
+  if (!name || !price || !description || !category) {
+    return res.status(400).json({ message: "Name, price, description, and category are required" });
   }
 
   if (!req.files || req.files.length === 0) {
     return res.status(400).json({ message: "At least one image is required" });
   }
 
-  // Convert all uploaded files to array of URLs (already uploaded by multer-storage-cloudinary)
   const imageUrls = req.files.map(file => file.path);
 
   const product = await Product.create({
     name,
-    description,
     price,
+    description,
+    discount: discount || 0,
+    images: imageUrls,
     category,
-    stock,
-    images: imageUrls,   // save array of image URLs here
   });
 
-  res.status(201).json({ message: "Product created successfully", product });
+  res.status(201).json({
+    message: "Product created successfully",
+    product
+  });
 });
 
-
-
+// Update product
 const updateProduct = asyncHandler(async (req, res) => {
-  const { name, description, price, stock } = req.body;
+  const { name, price, description, discount, category } = req.body;
 
   const updateFields = {
     name,
-    description,
     price,
-    stock,
+    description,
+    discount,
+    category,
   };
 
   if (req.files && req.files.length > 0) {
-    const imageUrls = req.files.map(file => file.path); 
+    const imageUrls = req.files.map(file => file.path);
     updateFields.images = imageUrls;
   }
 
@@ -64,20 +68,22 @@ const updateProduct = asyncHandler(async (req, res) => {
   });
 
   if (!product) {
-    res.status(404).json({ message: "Product not found" });
-    return;
+    return res.status(404).json({ message: "Product not found" });
   }
 
-  res.status(200).json({ message: "Product updated", product });
+  res.status(200).json({ message: "Product updated successfully", product });
 });
 
-
+// Delete product
 const deleteProduct = asyncHandler(async (req, res) => {
   await Product.findByIdAndDelete(req.params.id);
-    res.json(
-        { 
-            message: "Product deleted successfully" 
-        });
+  res.json({ message: "Product deleted successfully" });
 });
 
-module.exports = { getAllProducts, getProductById, createProduct, updateProduct, deleteProduct };
+module.exports = {
+  getAllProducts,
+  getProductById,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+};
